@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String
+  createdAt DateTime @default(now())
+}
+
+model Depot {
+  id        String   @id @default(cuid())
+  name      String
+  district  String
+  province  String
+  dealers   Dealer[]
+  batches   Batch[]
+  createdAt DateTime @default(now())
+}
+
+model Dealer {
+  id        String   @id @default(cuid())
+  name      String
+  district  String
+  province  String
+  depotId   String
+  depot     Depot    @relation(fields: [depotId], references: [id])
+  batches   Batch[]
+  createdAt DateTime @default(now())
+}
+
+model Batch {
+  id                 String   @id @default(cuid())
+  batchCode          String   @unique
+  crop               String
+  variety            String
+  varietyCode        String
+  packSizeKg         Float
+  intendedTotalPacks Int
+  generatedPilotPacks Int
+  productionDate     DateTime
+  qaStatus           String
+  germinationRate    Float
+  moistureContent    Float
+  physicalPurity     Float
+  depotId            String
+  dealerId           String
+  averagePackPrice   Float
+  depot              Depot    @relation(fields: [depotId], references: [id])
+  dealer             Dealer   @relation(fields: [dealerId], references: [id])
+  packs              Pack[]
+  createdAt          DateTime @default(now())
+}
+
+model Pack {
+  id             String        @id @default(cuid())
+  packCode       String        @unique
+  serialNumber   Int
+  batchId        String
+  signature      String
+  status         String        @default("ACTIVE")
+  firstScannedAt DateTime?
+  lastScannedAt  DateTime?
+  scanCount      Int           @default(0)
+  batch          Batch         @relation(fields: [batchId], references: [id])
+  scans          ScanEvent[]
+  rewards        RewardEntry[]
+  createdAt      DateTime      @default(now())
+}
+
+model ScanEvent {
+  id         String   @id @default(cuid())
+  packCode   String
+  packId     String?
+  pack       Pack?    @relation(fields: [packId], references: [id])
+  result     String
+  district   String?
+  latitude   Float?
+  longitude  Float?
+  deviceInfo String?
+  createdAt  DateTime @default(now())
+
+  @@index([packCode])
+  @@index([district])
+}
+
+model CounterfeitReport {
+  id              String   @id @default(cuid())
+  referenceNumber String   @unique
+  packCode        String?
+  reason          String
+  description     String
+  sellerName      String?
+  district        String
+  phoneNumber     String?
+  photoUrl        String?
+  latitude        Float?
+  longitude       Float?
+  createdAt       DateTime @default(now())
+
+  @@index([district])
+}
+
+model RiskAlert {
+  id                String   @id @default(cuid())
+  alertType         String
+  packCode          String?
+  district          String?
+  riskLevel         String
+  reason            String
+  estimatedExposure Float
+  status            String   @default("OPEN")
+  createdAt         DateTime @default(now())
+
+  @@index([packCode])
+  @@index([district])
+  @@index([riskLevel])
+}
+
+model RewardEntry {
+  id           String   @id @default(cuid())
+  packCode     String
+  packId       String?
+  pack         Pack?    @relation(fields: [packId], references: [id])
+  phoneNumber  String
+  campaignName String
+  entryStatus  String
+  createdAt    DateTime @default(now())
+
+  @@index([packCode])
+}
+
+model ExtensionLog {
+  id               String   @id @default(cuid())
+  farmerName       String?
+  district         String
+  agronomistName   String
+  varietyDiscussed String
+  recommendation   String
+  farmerFeedback   String
+  followUpRequired Boolean  @default(false)
+  createdAt        DateTime @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  entityType   String
+  entityId     String
+  action       String
+  details      String
+  previousHash String?
+  currentHash  String
+  createdAt    DateTime @default(now())
+}
